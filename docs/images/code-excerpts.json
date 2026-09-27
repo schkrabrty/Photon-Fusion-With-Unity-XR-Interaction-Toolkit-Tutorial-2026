@@ -1,0 +1,44 @@
+[
+  {
+    "image": "code-join.png",
+    "source": "Assets/Fusion and Essential Spawned Player Stuffs/Scripts/FusionNetworkManager.cs",
+    "first_line": 86,
+    "last_line": 93,
+    "excerpt": "var startGameArgs = new StartGameArgs()\n{\n    GameMode = GameMode.Shared,\n    SessionName = SessionName,\n    PlayerCount = Mathf.Clamp(MaxPlayers, 2, 256),\n    Scene = SceneRef.FromIndex(SceneManager.GetActiveScene().buildIndex),\n    SceneManager = gameObject.GetComponent<NetworkSceneManagerDefault>()\n};"
+  },
+  {
+    "image": "code-countdown.png",
+    "source": "Assets/Fusion and Essential Spawned Player Stuffs/Scripts/FusionLobbyState.cs",
+    "first_line": 75,
+    "last_line": 84,
+    "excerpt": "if (count < RequiredPlayers)\n{\n    Countdown = TickTimer.None;\n    return;\n}\nif (!Countdown.IsRunning)\n    Countdown = TickTimer.CreateFromSeconds(Runner, DelaySeconds);\nif (count == Runner.SessionInfo.MaxPlayers && RemainingCountdownSeconds() > FullRoomDelaySeconds)\n    Countdown = TickTimer.CreateFromSeconds(Runner, FullRoomDelaySeconds);\nif (Countdown.Expired(Runner) && Runner.IsSceneAuthority) StartGame();"
+  },
+  {
+    "image": "code-grab.png",
+    "source": "Assets/Scripts/XRGrabNetworkInteractable.cs",
+    "first_line": 30,
+    "last_line": 42,
+    "excerpt": "private void OnSelectEntered(SelectEnterEventArgs args)\n{\n    if (!Object || !Object.IsValid || Runner.LocalPlayer == PlayerRef.None) return;\n    // In Shared mode, request ownership so this client can synchronize the cube.\n    if (!Object.HasStateAuthority) Object.RequestStateAuthority();\n}\n\nprivate void OnSelectExited(SelectExitEventArgs args)\n{\n    if (_grab.isSelected || !Object || !Object.IsValid) return;\n    // Relinquish ownership when the last local hand releases the cube.\n    if (Object.HasStateAuthority) Object.ReleaseStateAuthority();\n}"
+  },
+  {
+    "image": "code-networked.png",
+    "source": "Assets/Fusion and Essential Spawned Player Stuffs/Scripts/FusionNetworkPlayer.cs",
+    "first_line": 21,
+    "last_line": 22,
+    "excerpt": "[Networked, OnChangedRender(nameof(ApplyPlayerColor))]\npublic Color PlayerColor { get; set; }"
+  },
+  {
+    "image": "code-rpc.png",
+    "source": "Assets/Scripts/XRSimpleNetworkInteractable.cs",
+    "first_line": 78,
+    "last_line": 83,
+    "excerpt": "[Rpc(RpcSources.All, RpcTargets.All)]\nprivate void RpcSetColor(Color color)\n{\n    if (targetRenderer) targetRenderer.material.color = color;\n    if (txtInfo) txtInfo.text = color.Equals(_originalColor) ? \"Tap the cube!\" : \"\";\n}"
+  },
+  {
+    "image": "code-cube-lesson.png",
+    "source": "docs/examples/CubeColorLesson.cs",
+    "first_line": 38,
+    "last_line": 51,
+    "excerpt": "[Rpc(RpcSources.All, RpcTargets.StateAuthority)]\nprivate void RpcRequestColor(Color requestedColor, RpcInfo info = default)\n{\n    // In this exercise, only the player who owns the held cube may recolor it.\n    if (info.Source != Object.StateAuthority) return;\n    CubeColor = requestedColor; // Persistent replicated state.\n    RpcCelebrate();            // A one-time effect for current peers.\n}\n\n[Rpc(RpcSources.StateAuthority, RpcTargets.All)]\nprivate void RpcCelebrate()\n{\n    if (celebration) celebration.Play();\n}"
+  }
+]
