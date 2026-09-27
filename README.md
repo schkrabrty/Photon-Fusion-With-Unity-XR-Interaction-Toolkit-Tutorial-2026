@@ -1,33 +1,22 @@
 # Learn Photon Fusion by building a multiplayer VR game
 
-This tutorial introduces multiplayer networking through a small Unity VR project. Two players meet in a lobby, enter a game together, see each other’s avatars, talk, and interact with shared cubes. Basic Unity and C# knowledge helps; no previous Photon experience is needed.
+Imagine opening a VR game, meeting a friend in a waiting room, and entering a shared play space together. You can see their hands move, hear them speak, and pass a cube between you. This project builds that experience with **Photon Fusion** for networking, **Photon Voice** for speech, and **XR Interaction Toolkit (XRI)** for VR interactions.
 
-**Photon Fusion** shares game state, **Photon Voice** carries speech, and **XR Interaction Toolkit (XRI)** handles VR tracking and interactions. Each section explains the idea, the Unity setup, and the code behind it.
+Follow that journey through the networking ideas, Unity setup, and scripts that make it work. Basic Unity and C# knowledge helps; no previous Photon experience is needed.
 
-![The Game scene](docs/images/game-overview.png)
+![The shared play space](docs/images/game-overview.png)
 
-## 1. Understand what networking shares
+## 1. Give the game somewhere to connect
 
-Each device runs its **own copy** of the scene and scripts. Networking shares selected information—positions, colors, or actions—so those copies show a consistent world. **Local** means your device; **remote** means another player’s device. A connected device is also called a **client** or **peer**.
+Before players can meet, their games need to connect to the same Photon application. Create a **Fusion** application in the [Photon Dashboard](https://dashboard.photonengine.com/) and put its ID into **App Id Fusion** in `Assets/Photon/Fusion/Resources/PhotonAppSettings.asset`. If you want voice chat, create a separate **Voice** application and fill **App Id Voice** too.
 
-This project uses Fusion’s **Shared mode**. Each player controls their avatar. Fusion calls the permission to update a network object **state authority**. One player also becomes the **Shared master client**, responsible here for the countdown and scene changes. Another player takes over that role if the master leaves. Shared mode does not make that player a server hosting everyone’s simulation.
+Open this project through Unity Hub and let importing finish. Fusion is included. The project uses Unity **6000.3.23f1**, Fusion **2.1.3**, Voice **2.63.0**, and XRI **3.3.2**.
 
-Our default room holds **two players**. The first waits in Lobby; the second fills the room and starts a **five-second countdown**. Both then enter Game, and admission closes. If one leaves, the remaining player returns to Lobby and the room reopens.
+Our game has two scenes: **Lobby Scene**, where players wait, and **Game Scene**, where they interact. Open `Assets/Scenes/Lobby Scene.unity`. In **Build Profiles → Scene List**, keep Lobby at index `0` and Game at `1`; the scripts use those indices when loading scenes.
 
-The scripts follow Photon’s [Shared Mode Basics](https://doc.photonengine.com/fusion/v2/tutorials/shared-mode-basics/2-scene-and-player), extended with VR and a waiting room.
+Each player's device runs its own copy of Unity. Networking shares selected information so both see the same experience. We call our device **local** and the other player's device **remote**; each connected device is a **client** or **peer**.
 
-## 2. Connect to a room
-
-**The idea:** a `NetworkRunner` manages this device’s connection and network updates. Calling `StartGame` in Shared mode creates or joins the named room. Our Lobby Scene is a waiting area inside that room, separate from Photon’s matchmaking lobby used to discover sessions.
-
-**Unity setup:** this repository uses Unity **6000.3.23f1**, Fusion **2.1.3**, Voice **2.63.0**, and XRI **3.3.2**. Fusion is included; Package Manager resolves the other packages.
-
-1. Open the project in Unity Hub and allow importing to finish.
-2. Create a **Fusion** application in the [Photon Dashboard](https://dashboard.photonengine.com/). Put its ID into **App Id Fusion** on `Assets/Photon/Fusion/Resources/PhotonAppSettings.asset`. For speech, create a separate **Voice** application and fill **App Id Voice**.
-3. Open `Assets/Scenes/Lobby Scene.unity`. In **Build Profiles → Scene List**, keep Lobby at index `0` and Game at `1`. These numbers identify the scenes to load.
-4. On **Fusion Network Manager**, use `NetworkRunner`, `NetworkEvents`, `NetworkSceneManagerDefault`, `FusionNetworkManager`, and `FusionPlayerSpawner`. Assign the Network Player prefab. The supplied scene already has these assignments.
-
-Read [FusionNetworkManager.cs](Assets/Fusion%20and%20Essential%20Spawned%20Player%20Stuffs/Scripts/FusionNetworkManager.cs). Its connection call follows this pattern:
+To bring those clients into one room, we use the `NetworkRunner` component on **Fusion Network Manager**. It manages the local connection and network simulation. [FusionNetworkManager.cs](Assets/Fusion%20and%20Essential%20Spawned%20Player%20Stuffs/Scripts/FusionNetworkManager.cs) starts it with a call like this:
 
 ```csharp
 var result = await runner.StartGame(new StartGameArgs {
@@ -39,46 +28,46 @@ var result = await runner.StartGame(new StartGameArgs {
 });
 ```
 
-`SessionName` identifies the room; `PlayerCount` sets its capacity. This code runs inside an **`async` method**: `await` lets Unity keep running while the connection completes. `result.Ok` tells us whether startup succeeded.
+In **Shared mode**, this creates the named room if needed or joins it if it already exists. `SessionName` identifies the room and `PlayerCount` sets its capacity—**two players by default** here. The method is `async`: `await` allows Unity to keep running while connection work finishes. `result.Ok` tells us whether startup succeeded.
 
-**Callbacks** are methods called when an event happens. The manager listens directly to Fusion’s events:
+The manager is an ordinary Unity `MonoBehaviour`, initialized through `Awake` and `Start`. Its `NetworkEvents` component provides **callbacks**: methods invoked when something happens, such as connecting, a player joining, or a shutdown. The script listens directly to these events to update status and detect failures. If the connection fails, it waits five seconds and reloads Lobby with a new runner, because a stopped runner cannot be reused. This is a fresh join attempt, not restoration of the old player.
 
-```csharp
-var events = GetComponent<NetworkEvents>();
-events.OnConnectedToServer.AddListener(r => SetStatus("Connected. Joining room..."));
-events.OnShutdown.AddListener((r, reason) => Reconnect($"Runner stopped: {reason}."));
-```
+The manager also needs `NetworkSceneManagerDefault` and `FusionPlayerSpawner`, with the Network Player prefab assigned, as in the supplied scene. Our Lobby Scene is a waiting area **inside the room**; it is separate from Photon's matchmaking lobby used to discover rooms.
 
-The full script also handles joins, departures, and connection failures. A small retry helper waits five seconds and reloads Lobby with a **new runner**: a stopped runner cannot be reused. Retrying joins again; it does not restore the old player identity or bypass a closed room.
+## 2. Wait for a friend, then leave together
 
-## 3. Give everyone the same countdown
+The first player waits until their friend arrives, then both should see the same countdown. Independent timers could disagree, so one device must decide when to start and share that decision.
 
-**The idea:** one authority decides when to start; the other devices receive its countdown. Otherwise, separate local timers could send players into Game at different times.
+Fusion calls permission to update a network object's state **state authority**. In Shared mode, players can have authority over different objects. One player also becomes the **Shared master client**; this project gives that role responsibility for the waiting-room state and scene changes. Another player takes over if the master leaves. The master is not a server hosting everyone's simulation.
 
-Add **Fusion Lobby State** with `NetworkObject` and [FusionLobbyState.cs](Assets/Fusion%20and%20Essential%20Spawned%20Player%20Stuffs/Scripts/FusionLobbyState.cs). A `NetworkObject` gives an object a network identity. The script makes this object follow the Shared master when that role changes.
+On **Fusion Lobby State**, a `NetworkObject` gives the object a network identity. [FusionLobbyState.cs](Assets/Fusion%20and%20Essential%20Spawned%20Player%20Stuffs/Scripts/FusionLobbyState.cs) derives from `NetworkBehaviour`, allowing object-level Fusion callbacks and shared properties such as:
 
 ```csharp
 [Networked] public TickTimer Countdown { get; set; }
 ```
 
-`[Networked]` shares a property’s current value. `TickTimer` stores the countdown’s deadline; each device calculates the remaining time. Only the object’s state authority writes it.
+`[Networked]` tells Fusion to synchronize this property's value. A `TickTimer` stores a deadline, so every device can calculate the time remaining. Only the object's state authority sets it; the script keeps that authority with the Shared master.
 
-Follow the script in this order:
+When Fusion makes the object ready, `Spawned()` initializes it. `PlayerJoined` and `PlayerLeft` callbacks update the player slots. Then `FixedUpdateNetwork()` checks the player count and deadline on Fusion's simulation ticks, which are distinct from Unity's `FixedUpdate` frames. Events tell us someone arrived; these checks implement our rule for when to begin.
 
-1. `Spawned()` prepares the object when Fusion creates its network copy.
-2. `PlayerJoined`, `PlayerLeft`, and `StateAuthorityChanged` update the starting-position slots through `RefreshSlots`.
-3. `FixedUpdateNetwork()` checks player count and timer expiry on Fusion’s simulation ticks—not Unity’s `FixedUpdate` frames.
-4. At expiry, the scene authority closes `SessionInfo.IsOpen` and calls `Runner.LoadScene(...)`. `NetworkSceneManagerDefault` coordinates loading for everyone.
+Keep **Max Players = 2**, **Minimum Players = 2**, **Waiting Delay = 30**, and **Full Room Delay = 5**. The second player fills our default room, so the countdown becomes five seconds. To try the four-player example, create a fresh room with Max Players set to `4`: two players start a 30-second wait, and filling the room shortens the remaining time to at most five seconds. Dropping below two cancels the countdown.
 
-Keep **Max Players = 2**, **Minimum Players = 2**, **Waiting Delay = 30**, and **Full Room Delay = 5**. For the **four-player example**, change Max Players to `4` before creating a fresh room: two players start 30 seconds; filling the room shortens the remaining time to at most five seconds. Falling below two cancels it.
+`FusionLobbyUI` reads the connection status, player count, and shared timer for the waiting-room panel. At expiry, the scene authority closes admission and calls `Runner.LoadScene(...)`; `NetworkSceneManagerDefault` coordinates everyone's move into Game. Before that journey feels like multiplayer, though, we need to make the people in the room visible.
 
-For the return trip, [FusionPlayerSpawner.cs](Assets/Fusion%20and%20Essential%20Spawned%20Player%20Stuffs/Scripts/FusionPlayerSpawner.cs) handles `PlayerLeft`: if only one remains, the scene authority loads Lobby. A small readiness check also covers departures during loading or master transfer. `LobbyReady` reopens admission. `FusionLobbyUI` displays connection status, player count, and remaining time.
+## 3. Turn tracked headsets into recognizable players
 
-## 4. Spawn an avatar and synchronize its appearance
+The **XR Origin** follows your headset and controllers locally. Your friend needs a visible body that follows those movements, so we create a separate **network avatar** from a prefab—a reusable object template.
 
-**The idea:** your local XR rig follows your headset and controllers. A separate network avatar shares those movements with other players. A **prefab** is the reusable template from which Fusion creates that avatar.
+A `NetworkObject` identifies the avatar but does not synchronize its movement or appearance. On the **Network Player** prefab, we choose what to share:
 
-Keep an **XR Origin (XR Rig)** in both scenes with working OpenXR/input settings. The avatar script looks for these exact paths:
+| Component | What it does here |
+| --- | --- |
+| `NetworkObject` | Identifies the avatar. Enable **Destroy When State Authority Leaves** and disable **Allow State Authority Override**, because it belongs to one player. |
+| `NetworkTransform` | Shares position and rotation on the root and independently moving tracked parts. |
+| `NetworkMecanimAnimator` | Shares hand animation parameters. Assign the hand's **Animator**, not an animation clip. |
+| `FusionNetworkPlayer` | Connects the avatar's head, hands, torso, ground contact, and hand animations to local tracking and input. |
+
+Assign those references and the grip/trigger actions on `FusionNetworkPlayer`. Both scenes need a working XR rig with these exact paths, which the script uses to find tracking objects:
 
 ```text
 XR Origin (XR Rig)/Camera Offset/
@@ -87,56 +76,53 @@ XR Origin (XR Rig)/Camera Offset/
     Right Controller
 ```
 
-Configure the **Network Player** prefab:
+Check that the prefab appears in Fusion's Network Project Config object table; rebuild the table if needed. Other clients need to resolve the same prefab when it is spawned.
 
-| Component or setting | Why it is needed |
-| --- | --- |
-| `NetworkObject` | Network identity. Enable **Destroy When State Authority Leaves**; disable **Allow State Authority Override** for a personal avatar. |
-| `NetworkTransform` | Shares position and rotation. Add it to the root and independently moving tracked parts. |
-| `NetworkMecanimAnimator` | Shares hand animation parameters. Assign each hand’s **Animator**, not an animation clip. |
-| `FusionNetworkPlayer` | Assign head, hands, torso/neck, ground contact, hand animators, and grip/trigger actions. |
-
-Check the prefab appears in Fusion’s Network Project Config object table; rebuild the table if needed. This lets other devices find the same prefab.
-
-The spawner creates **only our own avatar** on this device:
+[FusionPlayerSpawner.cs](Assets/Fusion%20and%20Essential%20Spawned%20Player%20Stuffs/Scripts/FusionPlayerSpawner.cs) derives from `SimulationBehaviour` to receive runner/session callbacks. On each device it creates only that player's avatar:
 
 ```csharp
 var avatar = Runner.Spawn(PlayerPrefab, CameraRig.transform.position, CameraRig.transform.rotation);
 Runner.SetPlayerObject(Runner.LocalPlayer, avatar);
 ```
 
-`Runner.Spawn` creates a network object; `SetPlayerObject` associates it with our `PlayerRef` (player identifier). Other scripts can then find it with `Runner.GetPlayerObject`. Use `Runner.Despawn` to remove a network object.
+Unlike ordinary `Instantiate`, `Runner.Spawn` creates a network object that other clients also receive. `SetPlayerObject` associates it with our `PlayerRef`, Fusion's player identifier, so later scripts can find our avatar. `Runner.Despawn` removes a network object.
 
-In [FusionNetworkPlayer.cs](Assets/Fusion%20and%20Essential%20Spawned%20Player%20Stuffs/Scripts/FusionNetworkPlayer.cs), only `HasStateAuthority` allows this device to copy its headset/controller input into the avatar. Without that check, our input could move local copies of other players’ avatars too.
+Inside [FusionNetworkPlayer.cs](Assets/Fusion%20and%20Essential%20Spawned%20Player%20Stuffs/Scripts/FusionNetworkPlayer.cs), `FixedUpdateNetwork()` first checks `HasStateAuthority`. Only our own avatar should copy our headset and controller poses. Its torso and ground contact follow with offsets, and grip/trigger inputs drive its hand animations. The networking components then carry those updates to our friend.
+
+Movement tells us where someone is; torso color helps us recognize who they are:
 
 ```csharp
 [Networked, OnChangedRender(nameof(ApplyPlayerColor))]
 public Color PlayerColor { get; set; }
 ```
 
-This is a C# **property**, using `{ get; set; }`. Fusion shares its value; `OnChangedRender` names the method that updates its visible material. `nameof(ApplyPlayerColor)` supplies the method’s name. We also call `ApplyPlayerColor()` in `Spawned`, because the change callback does not run for initial spawning.
+The authority assigns a color and Fusion shares the property. `OnChangedRender` names the method that applies a changed value to the visible material; `nameof` supplies that method's name. We also call `ApplyPlayerColor()` in `Spawned()`, because the change callback does not handle the initial spawn.
 
-**Across scenes:** the spawner remembers the network-assigned slot, keeping starting positions spaced 0.7 metres apart. It removes the old avatar and creates another against the new scene’s XR rig. The unchanged player identifier produces the same torso color. Live movement uses `NetworkTransform`; each new scene starts from its assigned position, not the last walked-to coordinate.
+The lobby assigns separate starting slots, spaced **0.7 metres** apart, so avatars do not appear on top of one another. During a scene change, the spawner remembers our slot, removes the old avatar, and creates another using the new scene's rig. The same player identifier produces the same torso color. This preserves recognizable players and starting arrangements across scenes; it does not carry over the last position someone walked to.
 
-## 5. Add voice
+These scripts use `using Fusion;` to access Fusion types. Keep `Assembly-CSharp` in Network Project Config's assemblies-to-weave list: Fusion's **weaver** generates the synchronization code behind `[Networked]` and, later, `[Rpc]`.
 
-Fusion shares gameplay data; Photon Voice sends audio. On the manager, add `FusionVoiceClient`, `Recorder`, `VoiceLogger`, and `FusionVoiceSetup`.
+## 4. Let those players talk
 
-1. On **Recorder**, select **Microphone** and enable **Transmit Enabled**.
-2. On **FusionVoiceClient**, enable **Use Fusion App Settings** and **Use Primary Recorder**. Drag the Recorder into **Primary Recorder**.
-3. Assign **Speaker Prefab** to an object containing `Speaker` and `AudioSource`. The supplied scene uses the Speaker child from the avatar prefab as its template.
+We can now see our friend, but movement updates do not carry speech. Photon Voice handles that separately while following the Fusion session.
 
-The **Recorder captures** your speech; the **Speaker plays** another player’s speech. `FusionVoiceSetup` handles microphone permission and recording readiness. This is room-wide voice; attaching speech to an avatar’s mouth requires a positional-voice setup. [Photon Voice setup](https://doc.photonengine.com/voice/v2/getting-started/voice-for-fusion)
+On the manager, use `FusionVoiceClient`, `Recorder`, `VoiceLogger`, and `FusionVoiceSetup`. Configure them as follows:
 
-## 6. Grab a shared cube: transfer authority
+1. Set Recorder to **Microphone** and enable **Transmit Enabled**.
+2. Enable **Use Fusion App Settings** and **Use Primary Recorder** on FusionVoiceClient; drag the Recorder into **Primary Recorder**.
+3. Assign **Speaker Prefab** to an object with `Speaker` and `AudioSource`. The supplied scene uses the Speaker child of the avatar prefab as its template.
 
-![The two cube examples with their saved materials](docs/images/cube-lessons.png)
+The Recorder captures our speech; the Speaker plays speech received from another player. `FusionVoiceSetup` handles microphone permission and recording readiness. This example provides room-wide voice; see [Photon's Voice setup](https://doc.photonengine.com/voice/v2/getting-started/voice-for-fusion) for further configuration.
 
-**The idea:** the device holding the cube needs permission to update its position. This is an **authority transfer**.
+## 5. Share something both players can grab
 
-On **Grabbable Cube**, use a collider, `Rigidbody`, `XRGrabInteractable`, `XRGeneralGrabTransformer`, `NetworkObject`, `NetworkTransform`, and [XRGrabNetworkInteractable.cs](Assets/Scripts/XRGrabNetworkInteractable.cs). Enable **Allow State Authority Override** and disable **Destroy When State Authority Leaves**.
+Once the countdown takes us into Game, the orange cube introduces a new problem. An avatar always belongs to its player, but either player should be able to move this cube. Its state authority therefore needs to change hands.
 
-XRI’s `selectEntered` event means a hand selected the cube. The script requests authority when needed:
+![The grabbable and interactable cubes](docs/images/cube-lessons.png)
+
+On **Grabbable Cube**, use a collider, `Rigidbody`, `XRGrabInteractable`, `XRGeneralGrabTransformer`, `NetworkObject`, `NetworkTransform`, and [XRGrabNetworkInteractable.cs](Assets/Scripts/XRGrabNetworkInteractable.cs). Enable **Allow State Authority Override** so another player can take control, and disable **Destroy When State Authority Leaves** so the shared prop survives their departure.
+
+XRI raises `selectEntered` when a hand grabs the cube. If we do not already control it, the script requests authority:
 
 ```csharp
 if (HasStateAuthority) return;
@@ -144,17 +130,19 @@ awaitingAuthority = true;
 Object.RequestStateAuthority();
 ```
 
-XRI moves the held cube; `NetworkTransform` sends the authority’s pose to other devices. `selectExited` releases authority after the last local hand lets go.
+Once authority arrives, the position XRI produces can be shared through `NetworkTransform`. On `selectExited`, the script releases authority after the last local hand lets go.
 
-**A request takes time; it is not an immediate grant.** `StateAuthorityChanged` handles a grant arriving after a quick release. One peer controls the cube at a time. Start with one grabber at a time: simultaneous grabs and networked throwing need more handling than this teaching example provides.
+A request is not an immediate grant. `StateAuthorityChanged` handles a grant arriving after a quick release. There is only one state authority at a time, not shared control by everyone. Practice with one grabber at a time; simultaneous grabs and networked throwing require more handling than this example provides.
 
-## 7. Change a cube’s color: send an RPC
+## 6. Make an interaction visible to everyone
 
-**The idea:** an **RPC (remote procedure call)** asks selected devices to run a method. A networked property shares “the color is blue”; an RPC sends “perform this color-changing action now.”
+The yellow-green cube uses the torso color we assigned earlier. When we hover over it, everyone should see it match our color and hide its prompt. Only we should see the hover particles.
 
-On **Interactable Cube**, use a collider, `XRSimpleInteractable`, `NetworkObject`, and [XRSimpleNetworkInteractable.cs](Assets/Scripts/XRSimpleNetworkInteractable.cs). Assign its renderer, text prompt, and particle system. Keep the object alive when its authority leaves.
+Here we introduce an **RPC**, or **remote procedure call**: a request for selected clients to execute a method. Our avatar's networked property shares a current value; this RPC sends a color-changing action to the players currently present.
 
-`hoverEntered` finds our avatar using `Runner.GetPlayerObject(Runner.LocalPlayer)`, reads its `PlayerColor`, and calls:
+On **Interactable Cube**, use a collider, `XRSimpleInteractable`, `NetworkObject`, and [XRSimpleNetworkInteractable.cs](Assets/Scripts/XRSimpleNetworkInteractable.cs). Assign the renderer, text prompt, and particle system, and keep the object alive when its authority leaves.
+
+In `hoverEntered`, the script finds our avatar with `Runner.GetPlayerObject(Runner.LocalPlayer)`, reads its `PlayerColor`, and passes that color to:
 
 ```csharp
 [Rpc(RpcSources.All, RpcTargets.All)]
@@ -165,30 +153,18 @@ private void RpcSetColor(Color color)
 }
 ```
 
-`RpcSources.All` allows any peer with the object to send; `RpcTargets.All` runs the method on current peers. This RPC needs no authority transfer. RPC names must have an `Rpc` prefix or suffix.
+`RpcSources.All` allows any peer with this object to send the call; `RpcTargets.All` executes it on current peers, including the sender. No authority transfer is needed for this RPC. Fusion recognizes RPC methods by the attribute and an `Rpc` prefix or suffix in their name.
 
-Everyone sees the cube match the player’s torso and its prompt disappear. The last local `hoverExited` restores the original color and prompt. Hover can come from a ray as well as a nearby hand.
+The last local `hoverExited` sends the original color back, restoring the prompt too. Hover may come from a nearby hand or a ray. Particle playback stays in the local hover handlers, outside the RPC, so our friend sees the color change without seeing our particles.
 
-Particles run only in **local hover handlers**, outside the RPC, so only the hovering player sees them. RPCs do not preserve history: a later arrival will not receive an old color-changing message. Use a networked property when the result must persist. Overlapping hovers in this simple example use the last received event.
+This also shows the limit of an RPC: it has no persistent history for someone joining later. If a changed color must survive for future arrivals, store it in a networked property. Here, overlapping hovers simply use the last received event.
 
-## Keep these distinctions in mind
+## 7. Complete the journey
 
-| Name | Purpose |
-| --- | --- |
-| `using Fusion;` | Makes Fusion’s C# types available. |
-| `MonoBehaviour` | Ordinary Unity logic: connection setup, UI, and permissions. |
-| `SimulationBehaviour` | Runner/session callbacks, used by the spawner. |
-| `NetworkBehaviour` | Object-level callbacks, networked properties, and RPCs. |
-| `Awake` / `Start` | Unity initialization callbacks. |
-| `Spawned` / `Despawned` | Fusion callbacks when a network copy appears or is removed. |
-| `HasStateAuthority` / `IsSceneAuthority` | Permission to update an object / coordinate scene changes. |
+Finally, our friend leaves. `PlayerLeft` in the spawner checks whether only one player remains in Game. The scene authority returns that player to Lobby, where `LobbyReady` reopens admission. A small readiness check covers departures during loading or a master change. The remaining player can now wait for someone else, completing the same loop we began with.
 
-Fusion’s **weaver** generates the synchronization code behind `[Networked]` and `[Rpc]`. Keep `Assembly-CSharp` in Network Project Config’s assemblies-to-weave list for these scripts.
+Try that whole journey with two clients and working VR input: **join → wait → enter Game → talk → grab → hover → leave**. Use matching App IDs, region, app version, session name, scene indices, timer settings, and spacing. Inspector settings are local configuration; the countdown and slots are shared state. If players wait alone, compare connection settings. For silent voice, check the Voice ID, microphone permission, Recorder, and Speaker assignments.
 
-## Test as you learn
+Read the linked scripts in this order alongside Photon's [Shared Mode Basics](https://doc.photonengine.com/fusion/v2/tutorials/shared-mode-basics/2-scene-and-player) to follow the same journey in code.
 
-Build and run two clients with working VR input. Start both in Lobby and use matching App IDs, region, app version, session name, timer settings, scene indices, and spacing. Gameplay settings are local Inspector configuration; the countdown and slots are networked state.
-
-Check one feature at a time: **join → countdown → avatars → voice → grab → hover → leave and return**. If players wait alone, compare their connection settings. If voice is silent, check the Voice ID, permission, Recorder, and Speaker assignments.
-
-Screenshots are offline Unity scene previews using the saved materials, not multiplayer recordings. See [image sources](docs/images/README.md) for capture details and a [close-up of the interactable cube](docs/images/interactable-cube.png).
+Screenshots are offline Unity scene previews using the saved materials. See [image sources](docs/images/README.md) and the [interactable-cube close-up](docs/images/interactable-cube.png).
