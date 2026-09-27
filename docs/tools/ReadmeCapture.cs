@@ -45,7 +45,8 @@ public static class ReadmeCapture
                 var a = GameObject.Find("Interactable Cube").transform.position;
                 var b = GameObject.Find("Grabbable Cube").transform.position;
                 var middle = (a+b)*0.5f;
-                Take("cube-lessons.png", middle+new Vector3(0.32f,0.3f,-0.65f), middle);
+                Take("cube-lessons.png", middle+new Vector3(0.22f,0.28f,-0.7f), middle);
+                Take("interactable-cube.png", a+new Vector3(0.2f,0.18f,-0.48f), a);
             }
             else if (stage == 2)
             {

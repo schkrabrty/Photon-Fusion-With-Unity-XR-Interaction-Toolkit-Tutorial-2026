@@ -2,7 +2,7 @@
 
 ## Scene captures
 
-`game-overview.png`, `cube-lessons.png`, and `waiting-room.png` were rendered with Unity **6000.3.23f1** from copies of this repository's **Game Scene** and **Lobby Scene**.
+`game-overview.png`, `cube-lessons.png`, `interactable-cube.png`, and `waiting-room.png` were rendered with Unity **6000.3.23f1** from copies of this repository's **Game Scene** and **Lobby Scene**.
 
 These are **offline scene previews**, not multiplayer gameplay recordings. The capture uses a separate camera for legible framing. It faces the Game scene's existing world-space prompt toward that camera and enables the Lobby's existing player-count and countdown labels, as the setup instructions require. It does not invent connected players, run a countdown, or stage RPC effects. Materials, geometry, and saved text come from the project. No Photon App IDs appear in the images.
 
@@ -14,9 +14,11 @@ To recapture, use a **temporary project copy**, not your active working Editor:
 2. Copy [ReadmeCapture.cs](../tools/ReadmeCapture.cs) into that temporary project's `Assets/Editor` folder.
 3. Start the matching Unity Editor in batch mode with `-projectPath <temporary-project>` and `-executeMethod ReadmeCapture.Capture`. Do not use `-nographics`: the capture needs a graphics device. Do not add `-quit`: the helper waits for rendering, then exits the temporary Editor itself.
 4. Set the environment variable `FUSION_DOCS_OUTPUT` to the output directory you want. Without it, the helper writes to `docs/images` under its working directory.
-5. Inspect all three images before replacing the README assets. Initial import and shader compilation can take several minutes.
+5. Inspect all four images before replacing the README assets. Initial import and shader compilation can take several minutes.
 
-The retained `waiting-room.png` shows the two-player default. The main README uses the unchanged Game previews and freshly regenerated code images.
+The scene captures were refreshed from the saved project on 2026-09-27. `waiting-room.png` shows the two-player default. The interactable cube uses [its saved material](../../Assets/Materials/Interactable%20Cube%20Material.mat), including its yellow-green base color and the scene’s lighting; the images are not recolored afterward.
+
+If package downloads prevent capture, use the already-resolved packages in a disposable copy: copy `Library/PackageCache` into a `LocalPackages` directory **outside Library**, then point that copy’s package dependencies to those local folders. Do not edit the working project’s manifest. Do not use `-noUpm`, which prevents Unity from registering the packages needed by the scene and capture script.
 
 ## Script images
 
