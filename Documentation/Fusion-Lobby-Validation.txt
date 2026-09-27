@@ -1,0 +1,153 @@
+Unity 6000.3.23f1 / bundled Photon Fusion 2.1.3
+INTERACTABLES PHYSICS LAYER AND FORWARD MOVEMENT — 2026-09-23
+PASS: Original caster masks reproduced missing hover after cubes moved to physics layer 6.
+PASS: Saved Game scene inherits updated left/right near and far physics masks; both
+include Interactables and exclude PlayerHitbox. XRI Interaction Layer remains Default.
+PASS: Actual left/right Near-Far Interactors hover the simple cube at close range and
+at 1.5 metres; the real hover handler changes its offline color.
+PASS: Simulated left grip selects and lifts the saved grabbable cube; after release,
+simulated right grip also selects it through the actual XRI interactor.
+PASS: Forward input requests a horizontal delta with flying disabled and the simulated
+headset pitched upward 45 degrees. Actual rig displacement: (0, 0, 1.51162) metres.
+PASS: Isolated CharacterController physics with a solid, following hand collider
+reproduces repeated upward stepping at low hand poses with the old collision settings.
+Excluding PlayerHitbox prevents this rise at all five sampled hand heights.
+The collision probe used the avatar hand's BoxCollider size and representative synthetic
+poses; it did not reproduce the user's exact physical controller pose.
+PASS: The shared XR Rig CharacterController excludes PlayerHitbox in both scenes.
+This also allows walking through other players; world geometry remains collidable.
+PASS: Both teleport ray masks include Interactables for obstruction; their XRI
+interaction masks remain Teleport. User cube layers, avatar colliders and Physics
+collision matrix were preserved. No production scripts were added or changed.
+The user has superseded the older trigger-only avatar setup recorded below: the whole
+Network Player is now PlayerHitbox, its hands and Ground Contact are solid, and head
+and Neck remain triggers. Local hand-model colliders remain unchanged.
+Evidence: /tmp/fusion-layer-movement-check/result.txt and unity.log.
+Validation ran in a disposable project with simulated poses/input and offline XRI.
+Physical headset testing remains outstanding; no new Photon session was needed for
+these mask and collision changes. The earlier two-client cube check is recorded below.
+
+TELEPORTATION AND AVATAR HITBOX CONFIGURATION — 2026-09-23
+PASS: Both planes retain Teleportation Area and their assigned MeshCollider.
+PASS: Both area interaction masks now match Teleport Interactors (Teleport, bit 31)
+and exclude grip-controlled Near-Far Interactors (Default, bit 0).
+PASS: The inherited line visual's Directional Teleport Reticle reference resolves.
+PASS: Right controller uses Teleport Mode (forward thumbstick sector) and Teleport Mode
+Cancel (grip); right teleport mode is enabled and left smooth motion retained.
+PASS: Network head/Neck/hands use enabled trigger colliders on PlayerHitbox, physics layer 8.
+PASS: Near-Far and Teleport Interactor physics query masks exclude PlayerHitbox.
+The previous disabled-hand-collider configuration recorded below has been superseded
+by these trigger hitboxes. Local XR hand-model source prefabs were not changed.
+Verification inspected saved scene/prefab references and installed XRI source. No new
+runtime/headset test was run. Bullet, damage and score systems do not exist yet.
+
+CUBE INTERACTION — 2026-09-23
+PASS: Editor and Android-conditional C# compilation, including Inspector reference discovery.
+PASS: The user's newly attached cube components and assigned references were preserved.
+PASS: Two real Photon clients registered both saved cubes with Fusion and XRI.
+PASS: Actual left/right Near-Far Interactor hover events changed the touch cube color;
+the second client received the matching avatar color and the cleared hover state.
+PASS: Simulated grip input selected and lifted the cube through the actual XR interactor.
+PASS: The remote client received the held pose and rejected grabbing an already-held cube.
+PASS: Release retained authority; the other client then requested/granted authority,
+lifted the cube, replicated its new pose back to the first client, and released it.
+PASS: Network hand colliders disabled; original XR Origin hand-model colliders preserved.
+The live test exposed an XRI kinematic warning when the second owner released the cube.
+Fixed by restoring dynamic physics inside selectExited before XRI applies throw velocity.
+PASS: A focused Fusion Single-mode regression exercised actual XRI selection with the
+old proxy kinematic state, then verified release and late detach without that warning.
+Evidence: /tmp/fusion-cubes-check/release-result.txt and release-fixed.log;
+ /tmp/fusion-cubes-check/creator-result.txt, peer-result.txt and intermediate markers/logs.
+The first test sampled a network color before its render update; the test was corrected to
+wait for the renderer, then the complete interaction test passed. Photon connection timed
+out initially on the final run; the existing automatic retry connected both clients.
+Validation used simulated controller poses and grip input in disposable projects. Physical
+headset interaction and throwing feel still require device testing. No validation script
+was added to the user's Assets.
+
+LOCAL AVATAR VISIBILITY AND HAND ALIGNMENT — 2026-09-23
+PASS: Editor and Android-conditional C# compilation.
+PASS: Two connected clients each hide their own network head, Neck and hands while
+keeping Ground Contact visible. The other client's complete avatar remains visible.
+PASS: Hidden avatar parts remain active for tracking and color synchronization.
+PASS: Both hands in Lobby and Game have zero Hand Presence offsets under their controllers.
+PASS: 12 simulated poses per client, including translated and rotated XR Origins, keep
+the animated hand meshes near their controllers and preserve the models' wrist calibration.
+PASS: Player spacing and XR bindings remain correct after entering Game.
+Evidence: /tmp/fusion-local-hands-check/ (creator and survivor result, game and hand-alignment files).
+Tests ran in disposable projects; no validation script was added to the user's Assets.
+This focused check exercised one Lobby-to-Game transition and simulated controller poses,
+not physical headset tracking or another complete Voice round trip.
+
+AUTOMATIC HAND ACTIONS — 2026-09-23
+PASS: Editor and Android-conditional C# compilation with the updated HandPresence.
+PASS: Both hands in both saved scenes bind the correct XRI left/right Activate Value and
+Select Value actions when their manual action fields are cleared.
+PASS: Simulated analog inputs on a cloned XRI asset return 0.3 Trigger and 0.7 Grip.
+PASS: Actions are reused from the rig asset; its Input Action Manager retains enable/disable control.
+PASS: Manual override is preserved, missing actions/models are null-safe, and repeated
+model initialization creates only one hand model.
+Evidence: /tmp/fusion-spacing-check/hand-actions.txt and hand-actions.log.
+Tests ran in a disposable project, with no validation script added to the user's Assets.
+Physical controller reconnects and headset tracking were not exercised by the simulated input test.
+
+Latest spacing, manager-consolidation and complete Voice round-trip checks: see Fusion-Voice-Validation.txt.
+The complete live round trip was repeated successfully after adding player spacing and root pose synchronization.
+The following records preserve the earlier event-binding/readability and lobby-only checks.
+
+FINAL SCENE / COMPILE / CALLBACK CHECKS
+PASS: Runner, events, scene manager and spawner are attached to Fusion Network Manager.
+PASS: Attached NetworkEvents callbacks deserialize without runtime initialization.
+PASS: Lobby state follows the Shared master and survives authority departure.
+PASS: Lobby scene deserialized; UI and player prefab references resolve.
+PASS: Automatic lobby panel contains status/countdown/player text and no buttons.
+PASS: Canvas height references resolve.
+PASS: Settings: minimum 2, capacity 2, waiting 30s, full room 5s.
+MasterClientObject flag: 131072
+PASS: Network Player references resolve; no missing scripts.
+PASS: Fusion IL weaving processed the networked countdown property.
+PASS: Lobby and Game build indices are 0 and 1.
+PASS: Both scenes have an XR Origin with camera and Left/Right Controller transforms.
+PASS: 12 countdown policy checks (minimum, full room, expiry, departures, no timer extension).
+PASS: Return-to-lobby policy (one remaining player, ready scene, authority, no duplicate transition).
+This setup check does not exercise Photon connectivity; see Documentation/Fusion-Lobby-Validation.txt for runtime results.
+
+PASS: All 18 scene NetworkEvents deserialize without InitializeEvents.
+PASS: AOI, scene-load-start and shutdown callbacks execute without null exceptions.
+PASS: Runtime handler binding, cleanup, and repeated enable cycles have no duplicate callbacks.
+PASS: Serialized-event runtime regression passed. No live Photon connection was used in this check.
+
+EARLIER LIVE PHOTON MULTI-CLIENT CHECKS
+These passed before the event-binding/readability cleanup. The full round trip has since been repeated successfully with Voice enabled; see Fusion-Voice-Validation.txt.
+Separate Unity processes used a unique temporary room in region us.
+Test-only settings: minimum 2, capacity 3, waiting 2 seconds, full-room 1 second.
+Capacity deliberately exceeded the player count to test closed-room admission.
+The project scene retains minimum 2, capacity 2, waiting 30 seconds, full-room 5 seconds.
+
+PASS: connected to Cloud and joined the isolated room.
+PASS: two avatars in Game; room closed despite a spare slot.
+PASS: late join rejected with GameClosed while capacity still had a free slot.
+PASS: original master left; survivor became master, reused runner, reopened room, cleaned up avatar.
+PASS: returning survivor sees the joining partner's actual Fusion player ID.
+PASS: replacement partner joined; second Game loaded, avatars respawned, fresh XR head/hand bindings, same manager/runner/color/settings, room closed again.
+PASS: Replacement joined reopened room and started the next round.
+PASS: Complete Game -> Lobby -> Game round trip passed.
+PASS: The same Fusion Network Manager and attached runner persisted through both rounds.
+PASS: Lobby return used a new scene XR Origin; the second Game used a different rig from the first Game.
+PASS: Local avatars bound head and both hand transforms in both Game rounds.
+PASS: All four trigger/grip input-action references were enabled in both Game rounds.
+PASS: No NullReferenceException or MissingReferenceException in the three final live-client logs.
+PASS: No question-mark operators remain under Assets/Scripts or Assets/Editor.
+
+LIMITS
+Headless tests validate scene bindings, input-action enablement and network lifecycle,
+not physical headset/controller tracking, pose quality, or visual appearance.
+Physical headset tests remain outstanding. Photon Voice is now enabled and live-tested with generated audio; see Fusion-Voice-Validation.txt.
+Automatic master departure was live-tested in Game. Lobby authority settings were validated;
+closing the master during a multi-person Lobby countdown remains a manual test scenario.
+Connection-failure cleanup was tested offline; a sustained real network outage/recovery was not simulated.
+
+EDITOR NOTE
+The temporary batch Editors logged an ArgumentOutOfRangeException from UnityEditor.Search.SearchDatabase during startup indexing.
+It was outside the Fusion scripts and did not prevent the live checks from completing.
+The late-join probe also intentionally produced Photon GameClosed (32764).

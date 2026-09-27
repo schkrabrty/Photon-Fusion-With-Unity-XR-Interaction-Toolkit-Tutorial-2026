@@ -1,0 +1,98 @@
+SPACING AND COMPLETE ROUND TRIP — 2026-09-23
+Current consolidated manager, Fusion 2.1.3 and Voice for Fusion 2.63.0.
+PASS: Editor and Android-conditional C# compilation; Unity Fusion IL weaving.
+PASS: 12 XR placement cases with 2/4 players, 1.25/3m spacing, rotated origins,
+off-centre camera tracking, preserved height/rotation/hand offsets, and no repeated rig movement.
+PASS: Two live clients received the creator's 2.5m spacing despite other clients specifying 0.75m.
+PASS: Remote avatar head positions showed the correct gap around a translated/rotated Game origin.
+The initial live check exposed a missing root NetworkTransform. It was added to Network Player
+and required by FusionNetworkPlayer; the full live test then passed on both clients.
+PASS: Original master departed; survivor became master, returned to the reopened Lobby,
+and started a second Game with a replacement partner using newly assigned spawn positions.
+PASS: Same manager/runner/color/room settings and Voice client/Recorder/actor across the round trip;
+fresh scene XR bindings and local camera/hand pose matching in each Game.
+PASS: Decoded nonzero remote audio in Lobby and Game on both rounds using generated audio.
+PASS: Late join rejected with GameClosed despite an available room slot.
+Evidence: /tmp/fusion-spacing-check/ (creator, survivor and replacement logs and result files).
+Tests ran in disposable project copies; no validation scripts were added to the user's Assets.
+Headset microphone quality, physical tracking and device permissions still need target-device checks.
+The older consolidation limitation below was resolved by this successful complete round trip.
+
+EARLIER MANAGER CONSOLIDATION — 2026-09-23
+Removed the Editor-only FusionLobbyValidation script and the separate FusionVoiceManager.
+Voice configuration, permission requests, callbacks and recording now live in FusionNetworkManager.
+The saved Lobby scene has no obsolete helper component; scripts remain in the user's reorganized folder.
+
+PASS: Editor compilation and Android permission branch compilation.
+PASS: Actual saved Lobby scene starts and connects with the consolidated manager and no validation helper.
+PASS: Both clients receive and decode nonzero remote audio in Lobby and Game.
+PASS: Game admission closes; a late join is rejected even with a free slot.
+PASS: Original master departs; survivor becomes master, returns to Lobby, and reopens the room.
+PASS: Survivor keeps the same manager, runner, Recorder, Voice Client and Voice room actor.
+PASS: Returned Lobby binds a fresh XR Origin and removes the previous Game avatar.
+PASS: No NullReferenceException or MissingReferenceException in the completed first-round/return checks.
+PASS: No question-mark operators in the four project Fusion scripts.
+
+LIMIT: The first replacement-client attempt encountered PhotonCloudTimeout before joining.
+That failure ended the orchestration and its surviving child process. A retried client connected,
+but the original survivor was no longer present, so a complete second-round rejoin was NOT verified
+for this consolidation. The earlier full Voice round trip below predates the consolidation.
+The original connection, joining, recovery, UI, countdown and tracking method bodies were preserved.
+Physical headset microphone, output, permission prompts and tracking quality still require device testing.
+
+Latest evidence:
+/tmp/fusion-lobby-check/manager-voice-creator.log
+/tmp/fusion-lobby-check/manager-voice-survivor.log
+/tmp/fusion-lobby-check/manager-voice-replacement.log
+/tmp/fusion-lobby-check/manager-voice-replacement-retry.log
+/tmp/fusion-manager-roundtrip-check/
+
+EARLIER VOICE IMPLEMENTATION CHECKS (before manager consolidation)
+
+Photon Voice validation — 2026-09-23
+Unity 6000.3.23f1 / Photon Fusion 2.1.3 / Voice for Fusion 2.63.0
+
+COMPILE AND SAVED SETUP
+PASS: Unity compiled the runtime scripts and Fusion IL weaving completed.
+PASS: Android permission code compiled with UNITY_ANDROID and without UNITY_EDITOR defines (C# check; no APK build).
+PASS: Required Voice client, Recorder, VoiceLogger and helper are attached to the persistent Lobby manager.
+PASS: The Speaker template references the existing Network Player/Speaker child; no separate Speaker prefab asset.
+PASS: Saved microphone source, permission-gated recording, transmit enabled, echo disabled and Voice App ID.
+PASS: Each scene has one enabled AudioListener; existing countdown and return-to-lobby policy checks pass.
+
+LIVE TWO-CLIENT AUDIO AND SCENE TEST
+Isolated project copies, unique Photon room in region us, supplied Voice App ID.
+Generated audio through Recorder.InputSourceType.Factory; no physical microphone was used.
+Test-only capacity 3, minimum 2, waiting 20 seconds, full-room delay 5 seconds.
+Main project remains capacity 2, minimum 2, waiting 30 seconds, full-room delay 5 seconds.
+Audio assertions require nonzero decoded PCM on remote Speaker streams, not just a successful connection.
+
+creator-voice-lobby: PASS: decoded nonzero remote PCM in Lobby.
+creator-voice-game: PASS: decoded nonzero remote PCM after scene load, frames=472
+survivor-returned: PASS: original master left; survivor became master, reused runner, reopened room, cleaned up avatar.
+replacement-voice-lobby: PASS: decoded nonzero remote PCM in Lobby.
+replacement-voice-game: PASS: decoded nonzero remote PCM after scene load, frames=483
+survivor-second-game: PASS: replacement partner joined; second Game loaded, avatars respawned, fresh XR head/hand bindings, same manager/runner/color/settings, room closed again.
+survivor-voice-game: PASS: decoded nonzero remote PCM after scene load, frames=977
+survivor-result: PASS: Complete Game -> Lobby -> Game round trip passed.
+replacement-result: PASS: Replacement joined reopened room and started the next round.
+late-join: PASS: late join rejected with GameClosed while capacity still had a free slot.
+
+PASS: Same Voice Client, Recorder and Voice room actor persisted on the survivor across Game -> Lobby -> Game.
+PASS: Exactly one active Voice Client and Recorder per peer during the scene round trip.
+PASS: Each client joined Voice only once; the survivor did not reconnect Voice when changing scenes or master.
+PASS: No NullReferenceException, MissingReferenceException or voice errors in the three successful client logs.
+
+LIMITS
+Physical headset microphone capture, Android permission prompts, speaker output, echo, pause/resume and tracking quality require device testing.
+A real Voice network outage/reconnection was not simulated.
+The headless Unity Editor logged an existing SearchDatabase indexing exception outside gameplay code; all live assertions completed.
+The late-join test intentionally produced Photon GameClosed. Generated 48 kHz audio was resampled to the configured 24 kHz.
+An initial second-project attempt encountered a stale temporary test helper referencing InitializeEvents; it was corrected before the successful run.
+
+EVIDENCE
+/tmp/fusion-lobby-check/voice-creator.log
+/tmp/fusion-lobby-check/voice-survivor-retry.log
+/tmp/fusion-lobby-check/voice-replacement.log
+/tmp/fusion-voice-roundtrip-check/
+Historical setup checks used an Editor validator that has since been removed at the user's request. No validator is required at runtime.
