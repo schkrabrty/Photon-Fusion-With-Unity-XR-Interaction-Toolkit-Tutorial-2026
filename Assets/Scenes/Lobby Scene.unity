@@ -488,13 +488,11 @@ GameObject:
   m_PrefabAsset: {fileID: 0}
   serializedVersion: 6
   m_Component:
-  - component: {fileID: 334626487}
   - component: {fileID: 334626477}
   - component: {fileID: 334626476}
   - component: {fileID: 334626481}
   - component: {fileID: 334626480}
   - component: {fileID: 334626479}
-  - component: {fileID: 334626478}
   - component: {fileID: 334626484}
   - component: {fileID: 334626483}
   - component: {fileID: 334626485}
@@ -519,13 +517,15 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   SessionName: Room 1
   MaxPlayers: 2
-  MinimumPlayers: 2
-  WaitingDelay: 30
-  FullRoomDelay: 5
-  GameSceneBuildIndex: 1
-  PlayerPrefab: {fileID: 4492543089198509801, guid: 5be5ed36a27444e9b99c99a281fe8a63, type: 3}
+  PlayerSpawnerPrefab: {fileID: 1638209775, guid: 1e0f4e47dc7d4a2b994739b2601579b9, type: 3}
   ReconnectDelay: 5
-  PlayerSpawnSpacing: 0.7
+  StatusText: {fileID: 1374799642}
+  PlayerCountText: {fileID: 1709596394}
+  CountdownText: {fileID: 149976579}
+  LobbyCanvas: {fileID: 477078200}
+  LobbyCamera: {fileID: 1946224675}
+  LobbyCanvasDistance: 1
+  LobbyCanvasHeightAboveGround: 1
 --- !u!4 &334626477
 Transform:
   m_ObjectHideFlags: 0
@@ -541,22 +541,6 @@ Transform:
   m_Children: []
   m_Father: {fileID: 0}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
---- !u!114 &334626478
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 334626475}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: a68f8881d846546d5a1a983c1d0ade52, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: Assembly-CSharp::FusionPlayerSpawner
-  PlayerPrefab: {fileID: 4492543089198509801, guid: 5be5ed36a27444e9b99c99a281fe8a63, type: 3}
-  LobbySceneBuildIndex: 0
-  GameSceneBuildIndex: 1
-  CameraRig: {fileID: 1903245566}
 --- !u!114 &334626479
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -2154,11 +2138,6 @@ Transform:
   - {fileID: 1184963605}
   m_Father: {fileID: 0}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
---- !u!1 &1903245566 stripped
-GameObject:
-  m_CorrespondingSourceObject: {fileID: 1717954561962503725, guid: f6336ac4ac8b4d34bc5072418cdc62a0, type: 3}
-  m_PrefabInstance: {fileID: 1946224670}
-  m_PrefabAsset: {fileID: 0}
 --- !u!1001 &1946224670
 PrefabInstance:
   m_ObjectHideFlags: 0
@@ -2309,7 +2288,6 @@ GameObject:
   m_PrefabAsset: {fileID: 0}
   serializedVersion: 6
   m_Component:
-  - component: {fileID: 334626486}
   - component: {fileID: 2139801448}
   - component: {fileID: 2139801450}
   - component: {fileID: 2139801449}
@@ -2380,78 +2358,6 @@ CanvasRenderer:
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 2139801447}
   m_CullTransparentMesh: 1
---- !u!1 &2140000000
-GameObject:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  serializedVersion: 6
-  m_Component:
-  - component: {fileID: 2140000001}
-  - component: {fileID: 2140000003}
-  - component: {fileID: 2140000004}
-  m_Layer: 0
-  m_Name: Fusion Lobby State
-  m_TagString: Untagged
-  m_Icon: {fileID: 0}
-  m_NavMeshLayer: 0
-  m_StaticEditorFlags: 0
-  m_IsActive: 1
---- !u!4 &2140000001
-Transform:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 2140000000}
-  serializedVersion: 2
-  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
-  m_LocalPosition: {x: 0, y: 0, z: 0}
-  m_LocalScale: {x: 1, y: 1, z: 1}
-  m_ConstrainProportionsScale: 0
-  m_Children: []
-  m_Father: {fileID: 0}
-  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
---- !u!114 &2140000003
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 2140000000}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: -1552182283, guid: e725a070cec140c4caffb81624c8c787, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: 
-  SortKey: 1523781427
-  SendPriority: 1
-  EnableInterpolation: 1
-  Flags: 131074
-  NestedObjects: []
-  NetworkedBehaviours:
-  - {fileID: 2140000004}
-  ForceRemoteRenderTimeframe: 0
---- !u!114 &2140000004
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 2140000000}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: 07d75152253f40d6bd682bfadac64f17, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: 
-  _RequiredPlayers: 0
-  _DelaySeconds: 0
-  _FullRoomDelaySeconds: 0
-  _GameSceneIndex: 0
-  _PlayerSpawnSpacing: 0
-  _SpawnPlayerCount: 0
-  _SpawnPlayers: []
 --- !u!1660057539 &9223372036854775807
 SceneRoots:
   m_ObjectHideFlags: 0
@@ -2462,37 +2368,5 @@ SceneRoots:
   - {fileID: 1280228930}
   - {fileID: 477078200}
   - {fileID: 533399725}
-  - {fileID: 2140000001}
   - {fileID: 334626477}
   - {fileID: 1747732736}
---- !u!114 &334626486
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 2139801447}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: 9c93f8dcad8c475db65a4bab29939af7, type: 3}
-  m_Name:
-  m_EditorClassIdentifier: Assembly-CSharp::FusionLobbyUI
-  StatusText: {fileID: 1374799642}
-  PlayerCountText: {fileID: 1709596394}
-  CountdownText: {fileID: 149976579}
-  MatchCameraHeight: 1
-  LobbyCanvas: {fileID: 477078200}
-  LobbyCamera: {fileID: 1946224675}
-  CanvasHeightOffset: 0
---- !u!114 &334626487
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 334626475}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: a3bd66c350d642aa9dcee3edf3172e1d, type: 3}
-  m_Name:
-  m_EditorClassIdentifier: Assembly-CSharp::FusionVoiceSetup

@@ -497,6 +497,7 @@ GameObject:
   - component: {fileID: 410276923}
   - component: {fileID: 410276922}
   - component: {fileID: 410276921}
+  - component: {fileID: 410276924}
   m_Layer: 0
   m_Name: Canvas
   m_TagString: Untagged
@@ -587,6 +588,19 @@ Canvas:
   m_SortingLayerID: 0
   m_SortingOrder: 0
   m_TargetDisplay: 0
+--- !u!114 &410276924
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 410276919}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: fda160fa48b4c4fa7a674deacbc7f23f, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::CanvasController
+  Camera: {fileID: 597056486}
 --- !u!1 &420667020
 GameObject:
   m_ObjectHideFlags: 0
@@ -6764,7 +6778,7 @@ MonoBehaviour:
   SortKey: 636321431
   SendPriority: 1
   EnableInterpolation: 1
-  Flags: 258
+  Flags: 2
   NestedObjects: []
   NetworkedBehaviours:
   - {fileID: 1081303816}
@@ -6899,8 +6913,6 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: b47802778697d4bf6a7b0e56ebfa8a23, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::XRGrabNetworkInteractable
-  _IsHeld:
-    RawValue: 0
 --- !u!114 &1136940871
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -6941,7 +6953,7 @@ MonoBehaviour:
   m_InteractionLayers:
     m_Bits: 1
   m_DistanceCalculationMode: 1
-  m_SelectMode: 0
+  m_SelectMode: 1
   m_FocusMode: 1
   m_CustomReticle: {fileID: 0}
   m_AllowGazeInteraction: 0

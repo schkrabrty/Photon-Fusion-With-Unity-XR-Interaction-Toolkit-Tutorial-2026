@@ -20,9 +20,9 @@ Select **Fusion Network Manager** in Lobby:
 
 Set room rules before joining. The room creator's rules are shared with everyone. With minimum and maximum both set to 2, the second player starts the five-second countdown immediately.
 
-The required components are already attached: `NetworkRunner`, `NetworkEvents`, `NetworkSceneManagerDefault`, `FusionPlayerSpawner`, `FusionVoiceClient`, `Recorder` and `VoiceLogger`. Keep this configured scene object; the scripts use its saved component references and events.
+The required components are already attached: `NetworkRunner`, `NetworkEvents`, `NetworkSceneManagerDefault`, `FusionPlayerSpawnerAndLobbyController`, `FusionVoiceClient`, `Recorder` and `VoiceLogger`. Keep this configured scene object; the scripts use its saved component references and events.
 
-Adding `FusionPlayerSpawner` to a scene GameObject automatically fills **Camera Rig** with an XR Origin from that same scene, including an inactive rig. It searches for the `XROrigin` component, so the GameObject's name can change. For an existing spawner, use its component menu → **Find XR Origin in Scene**. If there is no XR Origin yet, add one and use that menu again. Runtime scene changes still find the newly loaded scene's rig automatically.
+Adding `FusionPlayerSpawnerAndLobbyController` to a scene GameObject automatically fills **Camera Rig** with an XR Origin from that same scene, including an inactive rig. It searches for the `XROrigin` component, so the GameObject's name can change. For an existing spawner, use its component menu → **Find XR Origin in Scene**. If there is no XR Origin yet, add one and use that menu again. Runtime scene changes still find the newly loaded scene's rig automatically.
 
 The lobby canvas contains status, player count and countdown text. Joining is automatic. **Match Camera Height** keeps the canvas at the current XR camera's height plus **Canvas Height Offset**.
 
@@ -32,7 +32,7 @@ Your scripts are in `Assets/Fusion and Essential Spawned Player Stuffs/Scripts`.
 
 - **FusionNetworkManager**: owns connection, automatic joining/recovery, lobby UI, microphone permission and voice logging. The file is grouped into Manager lifetime, Connect/join/reconnect, Lobby canvas/messages, and Voice/microphone sections.
 - **FusionLobbyState**: a small Fusion `NetworkBehaviour` that shares the room rules and countdown. Only the current Shared master changes them.
-- **FusionPlayerSpawner**: uses the manager's runner, spawns the local avatar in Game, remembers the room rules and returns the last player to Lobby.
+- **FusionPlayerSpawnerAndLobbyController**: uses the manager's runner, spawns the local avatar in Game, remembers the room rules and returns the last player to Lobby.
 - **FusionNetworkPlayer**: a Fusion `NetworkBehaviour` on each avatar. It reads the owner's XR tracking and shares head/hand poses, hand animation and Neck color.
 
 Start with `FusionNetworkManager.Awake`, which keeps one manager and gets its attached components. `Start` enables voice callbacks and requests microphone permission, then connects and joins the Fusion room. Permission requests do not hold up joining.

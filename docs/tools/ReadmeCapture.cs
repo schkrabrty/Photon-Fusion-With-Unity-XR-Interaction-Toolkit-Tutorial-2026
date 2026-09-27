@@ -62,7 +62,7 @@ public static class ReadmeCapture
             }
             else if (stage == 3)
             {
-                var manager = UnityEngine.Object.FindFirstObjectByType<FusionLobbyUI>();
+                var manager = UnityEngine.Object.FindFirstObjectByType<FusionNetworkManager>();
                 manager.PlayerCountText.gameObject.SetActive(true);
                 manager.CountdownText.gameObject.SetActive(true);
                 var canvas = manager.LobbyCanvas;
