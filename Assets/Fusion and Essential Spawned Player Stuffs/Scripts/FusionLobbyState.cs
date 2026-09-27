@@ -1,112 +1,94 @@
+using System.Linq;
 using Fusion;
 using UnityEngine;
 using UnityEngine.SceneManagement;
 
-// The Shared master runs one countdown; Fusion sends it to everyone else.
 [RequireComponent(typeof(NetworkObject))]
-public class FusionLobbyState : NetworkBehaviour
+public class FusionLobbyState : NetworkBehaviour, IPlayerJoined, IPlayerLeft, IStateAuthorityChanged
 {
     public static FusionLobbyState Instance;
     [Networked] public TickTimer Countdown { get; set; }
-    [Networked] public int RequiredPlayers { get; set; }
-    [Networked] public float DelaySeconds { get; set; }
-    [Networked] public float FullRoomDelaySeconds { get; set; }
-    [Networked] public int GameSceneIndex { get; set; }
-    [Networked] public float PlayerSpawnSpacing { get; set; }
-    [Networked] public int SpawnPlayerCount { get; set; }
-    [Networked, Capacity(256)] public NetworkArray<PlayerRef> SpawnPlayers => default;
+    [Networked, Capacity(20)] public NetworkArray<PlayerRef> SpawnPlayers => default;
+    private FusionNetworkManager settings;
     private bool startingGame;
 
     private void Awake()
     {
-        // Transfer this scene object if the master leaves the room.
-        var networkObject = GetComponent<NetworkObject>();
-        networkObject.Flags |= NetworkObjectFlags.MasterClientObject;
-        networkObject.Flags &= ~NetworkObjectFlags.DestroyWhenStateAuthorityLeaves;
+        var obj = GetComponent<NetworkObject>();
+        obj.Flags |= NetworkObjectFlags.MasterClientObject;
+        obj.Flags &= ~NetworkObjectFlags.DestroyWhenStateAuthorityLeaves;
     }
 
     public override void Spawned()
     {
         Instance = this;
-        if (!HasStateAuthority) return;
-        var settings = FusionNetworkManager.Instance;
-        RequiredPlayers = Mathf.Clamp(settings.MinimumPlayers, 2, Runner.SessionInfo.MaxPlayers);
-        DelaySeconds = Mathf.Max(0.1f, settings.WaitingDelay);
-        FullRoomDelaySeconds = Mathf.Clamp(settings.FullRoomDelay, 0.1f, DelaySeconds);
-        GameSceneIndex = settings.GameSceneBuildIndex;
-        PlayerSpawnSpacing = Mathf.Max(0.1f, settings.PlayerSpawnSpacing);
-        Countdown = TickTimer.None;
-        Runner.GetComponent<FusionPlayerSpawner>().LobbyReady();
+        settings = FusionNetworkManager.Instance;
+        RefreshSlots(); // Include players who joined before this object spawned.
+        if (HasStateAuthority) Runner.GetComponent<FusionPlayerSpawner>().LobbyReady();
     }
 
-    public override void Render() { RememberLobby(); }
+    public void PlayerJoined(PlayerRef player) => RefreshSlots();
+    public void PlayerLeft(PlayerRef player) => RefreshSlots();
 
+    public void StateAuthorityChanged() => RefreshSlots();
+
+    private void RefreshSlots()
+    {
+        if (!Object || !Object.IsValid || !HasStateAuthority) return;
+        // Reconcile only on membership/authority events. Survivors keep their slots.
+        for (int slot = 0; slot < Runner.SessionInfo.MaxPlayers; slot++)
+            if (!Runner.ActivePlayers.Contains(SpawnPlayers[slot])) SpawnPlayers.Set(slot, PlayerRef.None);
+        foreach (var player in Runner.ActivePlayers)
+        {
+            if (SpawnPlayers.Contains(player)) continue;
+            for (int slot = 0; slot < Runner.SessionInfo.MaxPlayers; slot++)
+            {
+                if (SpawnPlayers[slot] != PlayerRef.None) continue;
+                SpawnPlayers.Set(slot, player);
+                break;
+            }
+        }
+    }
+
+    public override void Render() => RememberSlot();
     public override void Despawned(NetworkRunner runner, bool hasState)
     {
-        if (hasState) RememberLobby();
+        if (hasState) RememberSlot(); // Also capture a slot arriving on the final lobby tick.
     }
 
-    private void RememberLobby()
+    private void RememberSlot()
     {
-        if (RequiredPlayers < 2) return;
-        var settings = FusionNetworkManager.Instance;
-        settings.MinimumPlayers = RequiredPlayers;
-        settings.WaitingDelay = DelaySeconds;
-        settings.FullRoomDelay = FullRoomDelaySeconds;
-        settings.GameSceneBuildIndex = GameSceneIndex;
-        settings.PlayerSpawnSpacing = PlayerSpawnSpacing;
         var spawner = Runner.GetComponent<FusionPlayerSpawner>();
-        spawner.GameSceneBuildIndex = GameSceneIndex;
-        for (int slot = 0; slot < SpawnPlayerCount; slot++)
+        for (int slot = 0; slot < Runner.SessionInfo.MaxPlayers; slot++)
         {
             if (SpawnPlayers[slot] != Runner.LocalPlayer) continue;
             spawner.SpawnSlot = slot;
-            spawner.SpawnPlayerCount = SpawnPlayerCount;
+            spawner.SpawnPlayerCount = Runner.SessionInfo.MaxPlayers;
         }
     }
 
     public override void FixedUpdateNetwork()
     {
-        if (!HasStateAuthority || startingGame) return;
-        int count = 0;
-        foreach (var player in Runner.ActivePlayers) SpawnPlayers.Set(count++, player);
-        SpawnPlayerCount = count;
-        RememberLobby();
-        if (count < RequiredPlayers)
+        if (!HasStateAuthority || startingGame || Runner.IsSceneManagerBusy) return;
+        int count = Runner.ActivePlayers.Count();
+        if (count < Mathf.Clamp(settings.MinimumPlayers, 2, Runner.SessionInfo.MaxPlayers))
         {
             Countdown = TickTimer.None;
             return;
         }
         if (!Countdown.IsRunning)
-            Countdown = TickTimer.CreateFromSeconds(Runner, DelaySeconds);
-        if (count == Runner.SessionInfo.MaxPlayers && RemainingCountdownSeconds() > FullRoomDelaySeconds)
-            Countdown = TickTimer.CreateFromSeconds(Runner, FullRoomDelaySeconds);
-        if (Countdown.Expired(Runner) && Runner.IsSceneAuthority) StartGame();
-    }
-
-    private void StartGame()
-    {
+            Countdown = TickTimer.CreateFromSeconds(Runner, Mathf.Max(0.1f, settings.WaitingDelay));
+        float fullRoomDelay = Mathf.Max(0.1f, settings.FullRoomDelay);
+        if (count == Runner.SessionInfo.MaxPlayers && Countdown.RemainingTime(Runner) > fullRoomDelay)
+            Countdown = TickTimer.CreateFromSeconds(Runner, fullRoomDelay);
+        if (!Countdown.Expired(Runner) || !Runner.IsSceneAuthority) return;
         startingGame = true;
-        Runner.SessionInfo.IsOpen = false;
-        Runner.SessionInfo.IsVisible = false;
-        Runner.LoadScene(SceneRef.FromIndex(GameSceneIndex), LoadSceneMode.Single).AddOnCompleted(op =>
+        Runner.SessionInfo.IsOpen = Runner.SessionInfo.IsVisible = false;
+        Runner.LoadScene(SceneRef.FromIndex(settings.GameSceneBuildIndex), LoadSceneMode.Single).AddOnCompleted(op =>
         {
-            if (op.Error == null || !this) return;
-            Debug.LogException(op.Error);
-            startingGame = false;
-            Countdown = TickTimer.None;
-            Runner.SessionInfo.IsOpen = true;
-            Runner.SessionInfo.IsVisible = true;
+            if (op.Error != null) settings.Reconnect("Could not load Game.");
         });
     }
 
-    public float RemainingCountdownSeconds()
-    {
-        return Mathf.Max(0f, Countdown.RemainingTime(Runner) ?? 0f);
-    }
-
-    private void OnDestroy()
-    {
-        if (Instance == this) Instance = null;
-    }
+    private void OnDestroy() { if (Instance == this) Instance = null; }
 }

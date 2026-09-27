@@ -1,4 +1,3 @@
-using System.Collections.Generic;
 using Fusion;
 using TMPro;
 using UnityEngine;
@@ -13,7 +12,6 @@ public class XRSimpleNetworkInteractable : NetworkBehaviour
     [SerializeField] private TMP_Text txtInfo;
     [SerializeField] private ParticleSystem touchParticles;
     private Color _originalColor;
-    private static readonly Dictionary<PlayerRef, Color> _playerColors = new();
 
     private void Awake()
     {
@@ -50,11 +48,9 @@ public class XRSimpleNetworkInteractable : NetworkBehaviour
         var localPlayer = Runner.LocalPlayer;
         if (localPlayer == PlayerRef.None) return;
 
-        if (!_playerColors.ContainsKey(localPlayer))
-            _playerColors[localPlayer] = Random.ColorHSV(0f, 1f, 0.7f, 1f, 0.7f, 1f);
-
-        if (!Object.HasStateAuthority) Object.RequestStateAuthority();
-        RpcSetColor(_playerColors[localPlayer]);
+        // All -> All RPCs need no authority transfer. Read our real avatar color.
+        var avatar = Runner.GetPlayerObject(localPlayer);
+        if (avatar) RpcSetColor(avatar.GetComponent<FusionNetworkPlayer>().PlayerColor);
     }
 
     private void OnHoverExited(HoverExitEventArgs args)
@@ -62,9 +58,8 @@ public class XRSimpleNetworkInteractable : NetworkBehaviour
         // Keep the effect while another local hand or ray is still hovering.
         if (_interactable.isHovered) return;
         SetLocalParticles(false);
-        if (!Object || !Object.IsValid || !Object.HasStateAuthority) return;
+        if (!Object || !Object.IsValid) return;
         RpcSetColor(_originalColor);
-        Object.ReleaseStateAuthority();
     }
 
     // Only local interaction events control particles, never an RPC.

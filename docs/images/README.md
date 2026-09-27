@@ -16,6 +16,8 @@ To recapture, use a **temporary project copy**, not your active working Editor:
 4. Set the environment variable `FUSION_DOCS_OUTPUT` to the output directory you want. Without it, the helper writes to `docs/images` under its working directory.
 5. Inspect all three images before replacing the README assets. Initial import and shader compilation can take several minutes.
 
+The retained `waiting-room.png` shows the two-player default. The main README uses the unchanged Game previews and freshly regenerated code images.
+
 ## Script images
 
 `code-*.png` are browser-rendered screenshots of syntax-highlighted **source excerpts**, not screenshots of an IDE. Filenames and line numbers identify the source. The full scripts remain linked from the README for copying and accessibility.

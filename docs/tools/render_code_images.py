@@ -20,7 +20,7 @@ EXCERPTS = [
      "        var startGameArgs", "        };",
      "One Shared session. One room name. The Lobby is registered with Fusion."),
     ("code-countdown", "02 / ONE SHARED COUNTDOWN", SCRIPTS + "FusionLobbyState.cs",
-     "        if (count < RequiredPlayers)", "        if (Countdown.Expired(Runner)",
+     "        if (count < Mathf.Clamp(settings.MinimumPlayers", "        if (!Countdown.Expired(Runner)",
      "Wait below the minimum. Shorten at capacity. Load Game when the timer expires."),
     ("code-grab", "03 / WHO MAY MOVE THE CUBE?", "Assets/Scripts/XRGrabNetworkInteractable.cs",
      "    private void OnSelectEntered", "        if (Object.HasStateAuthority) Object.ReleaseStateAuthority();",

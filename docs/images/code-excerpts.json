@@ -2,23 +2,23 @@
   {
     "image": "code-join.png",
     "source": "Assets/Fusion and Essential Spawned Player Stuffs/Scripts/FusionNetworkManager.cs",
-    "first_line": 86,
-    "last_line": 93,
-    "excerpt": "var startGameArgs = new StartGameArgs()\n{\n    GameMode = GameMode.Shared,\n    SessionName = SessionName,\n    PlayerCount = Mathf.Clamp(MaxPlayers, 2, 256),\n    Scene = SceneRef.FromIndex(SceneManager.GetActiveScene().buildIndex),\n    SceneManager = gameObject.GetComponent<NetworkSceneManagerDefault>()\n};"
+    "first_line": 57,
+    "last_line": 64,
+    "excerpt": "var startGameArgs = new StartGameArgs\n{\n    GameMode = GameMode.Shared,\n    SessionName = SessionName,\n    PlayerCount = Mathf.Clamp(MaxPlayers, 2, 20),\n    Scene = SceneRef.FromIndex(lobbySceneIndex),\n    SceneManager = GetComponent<NetworkSceneManagerDefault>()\n};"
   },
   {
     "image": "code-countdown.png",
     "source": "Assets/Fusion and Essential Spawned Player Stuffs/Scripts/FusionLobbyState.cs",
-    "first_line": 75,
+    "first_line": 74,
     "last_line": 84,
-    "excerpt": "if (count < RequiredPlayers)\n{\n    Countdown = TickTimer.None;\n    return;\n}\nif (!Countdown.IsRunning)\n    Countdown = TickTimer.CreateFromSeconds(Runner, DelaySeconds);\nif (count == Runner.SessionInfo.MaxPlayers && RemainingCountdownSeconds() > FullRoomDelaySeconds)\n    Countdown = TickTimer.CreateFromSeconds(Runner, FullRoomDelaySeconds);\nif (Countdown.Expired(Runner) && Runner.IsSceneAuthority) StartGame();"
+    "excerpt": "if (count < Mathf.Clamp(settings.MinimumPlayers, 2, Runner.SessionInfo.MaxPlayers))\n{\n    Countdown = TickTimer.None;\n    return;\n}\nif (!Countdown.IsRunning)\n    Countdown = TickTimer.CreateFromSeconds(Runner, Mathf.Max(0.1f, settings.WaitingDelay));\nfloat fullRoomDelay = Mathf.Max(0.1f, settings.FullRoomDelay);\nif (count == Runner.SessionInfo.MaxPlayers && Countdown.RemainingTime(Runner) > fullRoomDelay)\n    Countdown = TickTimer.CreateFromSeconds(Runner, fullRoomDelay);\nif (!Countdown.Expired(Runner) || !Runner.IsSceneAuthority) return;"
   },
   {
     "image": "code-grab.png",
     "source": "Assets/Scripts/XRGrabNetworkInteractable.cs",
-    "first_line": 30,
-    "last_line": 42,
-    "excerpt": "private void OnSelectEntered(SelectEnterEventArgs args)\n{\n    if (!Object || !Object.IsValid || Runner.LocalPlayer == PlayerRef.None) return;\n    // In Shared mode, request ownership so this client can synchronize the cube.\n    if (!Object.HasStateAuthority) Object.RequestStateAuthority();\n}\n\nprivate void OnSelectExited(SelectExitEventArgs args)\n{\n    if (_grab.isSelected || !Object || !Object.IsValid) return;\n    // Relinquish ownership when the last local hand releases the cube.\n    if (Object.HasStateAuthority) Object.ReleaseStateAuthority();\n}"
+    "first_line": 31,
+    "last_line": 53,
+    "excerpt": "private void OnSelectEntered(SelectEnterEventArgs args)\n{\n    if (!Object || !Object.IsValid || Runner.LocalPlayer == PlayerRef.None) return;\n    // In Shared mode, request ownership so this client can synchronize the cube.\n    if (HasStateAuthority) return;\n    awaitingAuthority = true;\n    Object.RequestStateAuthority();\n}\n\npublic void StateAuthorityChanged()\n{\n    // A quick release may happen before the request is granted.\n    if (!HasStateAuthority || !awaitingAuthority) return;\n    awaitingAuthority = false;\n    if (!_grab.isSelected) Object.ReleaseStateAuthority();\n}\n\nprivate void OnSelectExited(SelectExitEventArgs args)\n{\n    if (_grab.isSelected || !Object || !Object.IsValid) return;\n    // Relinquish ownership when the last local hand releases the cube.\n    if (Object.HasStateAuthority) Object.ReleaseStateAuthority();\n}"
   },
   {
     "image": "code-networked.png",
@@ -30,8 +30,8 @@
   {
     "image": "code-rpc.png",
     "source": "Assets/Scripts/XRSimpleNetworkInteractable.cs",
-    "first_line": 78,
-    "last_line": 83,
+    "first_line": 73,
+    "last_line": 78,
     "excerpt": "[Rpc(RpcSources.All, RpcTargets.All)]\nprivate void RpcSetColor(Color color)\n{\n    if (targetRenderer) targetRenderer.material.color = color;\n    if (txtInfo) txtInfo.text = color.Equals(_originalColor) ? \"Tap the cube!\" : \"\";\n}"
   },
   {

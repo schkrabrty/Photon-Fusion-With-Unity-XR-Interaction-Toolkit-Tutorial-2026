@@ -248,7 +248,7 @@ GameObject:
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
   m_StaticEditorFlags: 0
-  m_IsActive: 0
+  m_IsActive: 1
 --- !u!224 &149976578
 RectTransform:
   m_ObjectHideFlags: 0
@@ -488,6 +488,7 @@ GameObject:
   m_PrefabAsset: {fileID: 0}
   serializedVersion: 6
   m_Component:
+  - component: {fileID: 334626487}
   - component: {fileID: 334626477}
   - component: {fileID: 334626476}
   - component: {fileID: 334626481}
@@ -525,14 +526,6 @@ MonoBehaviour:
   PlayerPrefab: {fileID: 4492543089198509801, guid: 5be5ed36a27444e9b99c99a281fe8a63, type: 3}
   ReconnectDelay: 5
   PlayerSpawnSpacing: 0.7
-  WaitingRoomPanel: {fileID: 2139801447}
-  StatusText: {fileID: 1374799642}
-  PlayerCountText: {fileID: 1709596394}
-  CountdownText: {fileID: 149976579}
-  MatchCameraHeight: 1
-  LobbyCanvas: {fileID: 477078200}
-  LobbyCamera: {fileID: 1946224675}
-  CanvasHeightOffset: 0
 --- !u!4 &334626477
 Transform:
   m_ObjectHideFlags: 0
@@ -2005,7 +1998,7 @@ GameObject:
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
   m_StaticEditorFlags: 0
-  m_IsActive: 0
+  m_IsActive: 1
 --- !u!224 &1709596393
 RectTransform:
   m_ObjectHideFlags: 0
@@ -2316,6 +2309,7 @@ GameObject:
   m_PrefabAsset: {fileID: 0}
   serializedVersion: 6
   m_Component:
+  - component: {fileID: 334626486}
   - component: {fileID: 2139801448}
   - component: {fileID: 2139801450}
   - component: {fileID: 2139801449}
@@ -2471,3 +2465,34 @@ SceneRoots:
   - {fileID: 2140000001}
   - {fileID: 334626477}
   - {fileID: 1747732736}
+--- !u!114 &334626486
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 2139801447}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 9c93f8dcad8c475db65a4bab29939af7, type: 3}
+  m_Name:
+  m_EditorClassIdentifier: Assembly-CSharp::FusionLobbyUI
+  StatusText: {fileID: 1374799642}
+  PlayerCountText: {fileID: 1709596394}
+  CountdownText: {fileID: 149976579}
+  MatchCameraHeight: 1
+  LobbyCanvas: {fileID: 477078200}
+  LobbyCamera: {fileID: 1946224675}
+  CanvasHeightOffset: 0
+--- !u!114 &334626487
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 334626475}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: a3bd66c350d642aa9dcee3edf3172e1d, type: 3}
+  m_Name:
+  m_EditorClassIdentifier: Assembly-CSharp::FusionVoiceSetup
